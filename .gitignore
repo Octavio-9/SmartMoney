@@ -1,0 +1,53 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local secrets and keys
+*.pem
+*.p12
+*.key
+*.crt
+*.jks
+*.keystore
+*.pub
+*.p8
+
+# Archives et binaires du poste de développement
+smart_api/smart_api.zip
+smart_api/composer.phar
+*.apk
+smartmoney-deploy.zip
+
+# Base SQLite locale : données de démonstration, recréées par
+# « php artisan migrate --seed ». Rien à versionner.
+smart_api/database/*.sqlite
+smart_api/database/*.sqlite-journal
+
+# Laravel / PHP
+smart_api/vendor/
+smart_api/storage/app/*
+smart_api/storage/framework/*
+smart_api/storage/logs/*
+smart_api/bootstrap/cache/*
+smart_api/public/storage/
+smart_api/.phpunit.result.cache
+
+# Flutter / Dart
+smart_mobile/build/
+smart_mobile/.dart_tool/
+smart_mobile/.flutter-plugins
+smart_mobile/.flutter-plugins-dependencies
+smart_mobile/.packages
+smart_mobile/.idea/
+smart_mobile/.vscode/
+smart_mobile/android/key.properties
+smart_mobile/android/.gradle/
+smart_mobile/android/local.properties
+smart_mobile/ios/Flutter/Generated.xcconfig
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+*.log
+*.swp
