@@ -1,6 +1,6 @@
 # Déploiement de l'API Smart Money sur Railway
 
-Cible : **Railway**, PHP 8.3 via Nixpacks, **PostgreSQL managé**.
+Cible : **Railway**, PHP 8.3 via **Railpack** (FrankenPHP), **PostgreSQL managé**.
 Seul `smart_api/` est déployé. `smart_mobile/` est une application Flutter : elle
 se compile en APK et n'a rien à faire sur le serveur.
 
@@ -55,29 +55,50 @@ Railway, mais l'aide-mémoire des variables à reporter dans l'interface.
 Inscrivez-vous sur **[railway.com](https://railway.com/)** — la création de
 compte via GitHub est la plus rapide.
 
-Puis installez l'outil en ligne de commande (Node 22 est déjà présent) :
+Le code étant désormais sur GitHub (`Octavio-9/SmartMoney`, dépôt privé), le
+chemin le plus simple est le déploiement connecté :
 
-```bash
-npm install -g @railway/cli
-railway login
-```
+**New Project** → **Deploy from GitHub repo** → autorisez Railway → `SmartMoney`.
 
-> **Pourquoi la ligne de commande plutôt que GitHub.** `railway up` téléverse le
-> dossier courant directement. Vous évitez ainsi de créer un dépôt Git et de
-> publier votre code sur GitHub. Si vous préférez le déploiement automatique à
-> chaque `git push`, connectez un dépôt à la place — les deux fonctionnent.
+Chaque `git push` redéploiera automatiquement.
 
 ---
 
-## 4. Créer le projet et la base
+## 4. ⚠️ Régler le Root Directory — l'étape qui fait échouer le build
 
-```bash
-mkdir smartmoney-deploy && cd smartmoney-deploy
-# extrayez ici le contenu de smartmoney-deploy.zip
-railway init          # nommez le projet, par ex. smartmoney
+**C'est l'erreur la plus probable, et elle survient avant tout le reste.**
+
+Le dépôt contient `smart_api/` et `smart_mobile/` côte à côte. Railpack analyse
+la racine, n'y trouve aucun `composer.json`, et abandonne :
+
+```
+✖ Railpack could not determine how to build the app.
+
+  ./
+  ├── smart_api/
+  ├── smart_mobile/
+  ├── .gitignore
+  ├── CLAUDE.md
+  └── README.md
 ```
 
-Puis, dans l'interface Railway : **New** → **Database** → **Add PostgreSQL**.
+Correction : service → **Settings** → **Source** → **Root Directory** :
+
+```
+smart_api
+```
+
+Ce réglage **n'existe que dans le tableau de bord**. Ni `railway.json`, ni
+`railway.toml`, ni la CLI ne permettent de le définir — la demande d'évolution
+est toujours ouverte côté Railway. Ne cherchez pas à le mettre dans un fichier.
+
+Redéployez ensuite : **Deployments** → **Redeploy**.
+
+---
+
+## 4 bis. Ajouter la base
+
+Dans l'interface Railway : **New** → **Database** → **Add PostgreSQL**.
 
 Railway crée le service et publie une variable `DATABASE_URL` réutilisable par
 référence. Il n'y a **ni hôte ni mot de passe à recopier**.
@@ -113,13 +134,18 @@ Générez enfin la clé applicative en local et collez-la dans `APP_KEY` :
 
 ## 6. Déployer
 
-```bash
-railway up
-```
+Le déploiement part tout seul à chaque `git push`, ou via **Deployments** →
+**Redeploy**.
 
-Nixpacks détecte PHP via `composer.json` (qui exige `^8.3`), installe les
-dépendances avec `composer install --no-dev`, et sert `public/` derrière
-nginx + php-fpm.
+Railway construit avec **Railpack** (et non Nixpacks, remplacé depuis). Son
+provider PHP détecte l'application via `composer.json` et `public/index.php`,
+lit la version PHP exigée — ici `^8.3` — et sert l'application avec
+**FrankenPHP**. À défaut d'indication, Railpack choisirait PHP 8.4.
+
+> Railpack active aussi un provider Node s'il trouve un `package.json`. Celui de
+> `smart_api` a été supprimé du dépôt avec `vite.config.js`, `resources/css/`,
+> `resources/js/` et `welcome.blade.php` : l'API ne sert que du JSON et un seul
+> gabarit Blade, celui du reçu PDF. Aucune étape npm n'est donc déclenchée.
 
 Générez ensuite l'URL publique : service → **Settings** → **Networking** →
 **Generate Domain**. Reportez-la dans `APP_URL`.
@@ -238,9 +264,10 @@ ignoré : la configuration mise en cache masque l'environnement.
 - **Aucune étape Railway n'a été exécutée réellement.** Je n'ai pas de compte :
   les commandes et les noms de menus viennent de leur documentation. La logique
   est juste, les intitulés peuvent différer.
-- **La détection PHP par Nixpacks n'est pas testée.** Elle repose sur
-  `composer.json` + `public/index.php`, tous deux présents. Si le build échoue,
-  un fichier `nixpacks.toml` peut forcer la configuration.
+- **La détection PHP par Railpack n'est pas testée.** Elle repose sur
+  `composer.json` + `public/index.php`, tous deux présents dans `smart_api/`.
+  Le premier build a échoué faute de **Root Directory** (voir §4) : c'était une
+  erreur de configuration, pas de détection.
 - **La suite de tests ne tourne pas sur le poste de développement** : PHPUnit
   exige PHP 8.3, XAMPP local est en 8.2. Toute la vérification a été faite par
   requêtes HTTP — 15 contrôles passés, y compris les garde-fous 422.

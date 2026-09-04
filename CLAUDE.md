@@ -4,7 +4,7 @@ Ce fichier fournit des instructions à Claude Code (claude.ai/code) pour travail
 
 ## Structure du dépôt
 
-Tout le code source se trouve dans `smartmoney-main/` (le dossier parent `SmartMoney/` ne contient que ce répertoire et une archive zip). Ce n'est pas un dépôt git.
+Tout le code source se trouve dans `smartmoney-main/`, qui est la racine du dépôt git (`Octavio-9/SmartMoney`, privé). Le dossier parent `SmartMoney/` n'est pas versionné.
 
 - `smartmoney-main/smart_api` — API JSON Laravel 13 (cible PHP 8.3, Sanctum, SQLite)
 - `smartmoney-main/smart_mobile` — client Flutter (package `smart_money`), seul consommateur de l'API
@@ -21,6 +21,8 @@ Conséquences :
 
 - Ne **pas** lancer `composer install`, `composer update` ni `composer dump-autoload` — ils échouent sur le contrôle de plateforme `^8.3` et écraseraient l'autoloader personnalisé.
 - Si l'autoloading casse après l'ajout de classes, le régénérer avec `php gen_autoload.php` depuis `smart_api/`.
+- `gen_autoload.php` construit désormais aussi le **classmap** (~1 557 classes). Il écrivait auparavant un `autoload_classmap.php` vide, ce qui rendait introuvables les classes déclarées hors PSR-4 — dompdf déclare `"classmap": ["lib/"]`, et `Dompdf\Cpdf` en fait partie : toute génération de reçu échouait donc en HTTP 500.
+- `storage/framework/{cache/data,sessions,views}` doit exister, sinon la compilation des vues Blade échoue avec « Please provide a valid cache path ». Laravel **ne recrée pas** ces dossiers.
 - `test_artisan.php` est un test de démarrage ponctuel écrit précisément pour cette configuration.
 - Les scripts `composer setup` et `composer dev` de `composer.json` sont ceux de Laravel par défaut et ne sont pas utilisables ici.
 
@@ -67,6 +69,10 @@ Les routes sont à plat dans [api.php](smartmoney-main/smart_api/routes/api.php)
 Les taux de change proviennent de la table `exchange_rates`, indexée sur `(from_currency, to_currency)` ; une même devise court-circuite à 1.0 et une paire absente lève une exception. La `currency` d'un utilisateur est copiée depuis son `Country` à l'inscription et ne change jamais. Ajouter un pays impose donc de seeder le pays, ses opérateurs **et** les lignes de taux dans les deux sens — sinon les transferts vers ce pays échouent avec « Taux de change introuvable ».
 
 Les reçus PDF sont générés par dompdf depuis `resources/views/pdf/receipt.blade.php` *à l'intérieur* de la transaction de transfert, enregistrés dans `storage/app/public/receipts/`, et servis uniquement via `GET /api/transfers/{id}/receipt`, qui revérifie que l'appelant est bien l'expéditeur ou le destinataire. Le lien symbolique public de storage n'est pas le canal de livraison.
+
+`TransferController::receipt()` **régénère** le PDF quand le fichier manque sur le disque : sur un hébergement au système de fichiers éphémère (Railway), le chemin reste en base alors que le fichier a disparu au redéploiement.
+
+La route `/` de `routes/web.php` renvoie un petit JSON d'état plutôt que la vue `welcome` de Laravel, qui appelait `@vite` et échouait sans assets compilés. Elle sert de point de santé aux hébergeurs. Tout le nécessaire Vite (`package.json`, `vite.config.js`, `resources/css`, `resources/js`) a été retiré : l'API ne sert que du JSON et le gabarit du reçu.
 
 ### Conventions backend
 
