@@ -26,10 +26,27 @@ smart_api/database/*.sqlite-journal
 
 # Laravel / PHP
 smart_api/vendor/
+# On ignore le contenu de storage/ mais on VERSIONNE l'arborescence via des
+# .gitkeep. Laravel ne recrée pas ces dossiers, et sans
+# storage/framework/views toute vue Blade échoue avec « Please provide a valid
+# cache path » — donc plus aucun reçu PDF.
 smart_api/storage/app/*
+!smart_api/storage/app/public/
+smart_api/storage/app/public/*
 smart_api/storage/framework/*
+!smart_api/storage/framework/cache/
+!smart_api/storage/framework/sessions/
+!smart_api/storage/framework/testing/
+!smart_api/storage/framework/views/
+smart_api/storage/framework/cache/*
+!smart_api/storage/framework/cache/data/
+smart_api/storage/framework/cache/data/*
+smart_api/storage/framework/sessions/*
+smart_api/storage/framework/testing/*
+smart_api/storage/framework/views/*
 smart_api/storage/logs/*
 smart_api/bootstrap/cache/*
+!.gitkeep
 smart_api/public/storage/
 smart_api/.phpunit.result.cache
 
