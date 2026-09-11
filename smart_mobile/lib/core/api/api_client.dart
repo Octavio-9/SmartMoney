@@ -34,7 +34,8 @@ class ApiClient {
 
   Dio get dio => _dio;
 
-  Future<void> saveToken(String token) => _storage.write(key: 'auth_token', value: token);
+  Future<void> saveToken(String token) =>
+      _storage.write(key: 'auth_token', value: token);
 
   Future<String?> getToken() => _storage.read(key: 'auth_token');
 
@@ -53,7 +54,20 @@ class ApiClient {
           if (first is List && first.isNotEmpty) return first.first.toString();
         }
       }
-      return error.message ?? 'Erreur réseau';
+      // Sans réponse exploitable du serveur, error.message est un texte anglais
+      // technique (« Failed host lookup… ») qui finissait affiché tel quel.
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return 'Le serveur met trop de temps à répondre. Vérifiez votre connexion puis réessayez.';
+        case DioExceptionType.connectionError:
+          return 'Pas de connexion internet. Vérifiez votre réseau puis réessayez.';
+        case DioExceptionType.badResponse:
+          return 'Le serveur a rencontré une erreur (${error.response?.statusCode}). Réessayez dans un instant.';
+        default:
+          return 'Erreur réseau. Réessayez dans un instant.';
+      }
     }
     return error.toString();
   }

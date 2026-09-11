@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_money/core/api/api_client.dart';
 import 'package:smart_money/core/api/api_service.dart';
 import 'package:smart_money/core/models/models.dart';
 import 'package:smart_money/core/theme/app_colors.dart';
@@ -18,6 +19,7 @@ class _DestinationScreenState extends State<DestinationScreen> {
   List<CountryModel> _countries = [];
   List<CountryModel> _filtered = [];
   bool _loading = true;
+  String? _error;
   final _search = TextEditingController();
 
   @override
@@ -27,12 +29,27 @@ class _DestinationScreenState extends State<DestinationScreen> {
   }
 
   Future<void> _load() async {
-    final list = await context.read<ApiService>().countries();
     setState(() {
-      _countries = list;
-      _filtered = list;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final list = await context.read<ApiService>().countries();
+      if (!mounted) return;
+      setState(() {
+        _countries = list;
+        _filtered = list;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      // Sans ce catch, un seul raté réseau laissait _loading à true pour
+      // toujours : spinner éternel, aucun message, aucun moyen de réessayer.
+      setState(() {
+        _error = context.read<ApiClient>().extractError(e);
+        _loading = false;
+      });
+    }
   }
 
   void _onSearch(String q) {
@@ -52,11 +69,49 @@ class _DestinationScreenState extends State<DestinationScreen> {
     super.dispose();
   }
 
+  Widget _errorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off,
+              size: 40,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Impossible de charger les pays',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Réessayer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: Image.asset('assets/images/logo.png', height: 36),
       ),
       body: Column(
@@ -83,20 +138,33 @@ class _DestinationScreenState extends State<DestinationScreen> {
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? _errorView()
                 : ListView.separated(
                     itemCount: _filtered.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final c = _filtered[i];
                       return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 6,
+                        ),
                         leading: FlagCircle(flagCode: c.flagCode, size: 44),
-                        title: Text(c.nameFr, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        title: Text(
+                          c.nameFr,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                         subtitle: Text(
                           '${c.currency} - ${c.currencyName}',
-                          style: const TextStyle(color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
-                        trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                        trailing: const Icon(
+                          Icons.chevron_right,
+                          color: AppColors.textSecondary,
+                        ),
                         onTap: () {
                           context.read<TransferDraft>().setDestination(c);
                           context.push('/transfer/corridor');
@@ -112,7 +180,10 @@ class _DestinationScreenState extends State<DestinationScreen> {
             child: const Text(
               'Choisissez le pays de votre destinataire',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

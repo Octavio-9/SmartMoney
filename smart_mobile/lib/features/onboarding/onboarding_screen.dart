@@ -20,7 +20,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     (
       Icons.send_rounded,
       'Envoyez de l\'argent',
-      'Transférez facilement vers vos proches à travers l\'Afrique.',
+      'Transférez facilement vers vos proches à travers plusieurs pays.',
     ),
     (
       Icons.account_balance_wallet_rounded,

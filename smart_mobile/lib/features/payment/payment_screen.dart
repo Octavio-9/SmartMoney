@@ -74,6 +74,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final country = context.watch<AuthProvider>().user?.country?.nameFr;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Paiement')),
       body: _loading
@@ -90,9 +92,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'Sélectionnez un facturier disponible dans votre pays.',
-                        style: TextStyle(color: AppColors.textSecondary),
+                      // Le pays est nommé : la liste en dépend, et sans lui un compte
+                      // ivoirien ne comprend pas pourquoi EDG n'apparaît pas.
+                      Text(
+                        'Sélectionnez un facturier disponible dans votre pays'
+                        '${country == null ? '' : ' ($country)'}.',
+                        style: const TextStyle(color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 16),
                       ..._byCategory(),
