@@ -42,4 +42,33 @@ class ExampleTest extends TestCase
         $transfer->assertCreated();
         $this->assertEquals('completed', $transfer->json('transfer.status'));
     }
+
+    public function test_billers_follow_the_account_country(): void
+    {
+        $this->seed();
+
+        $guinee = $this->billerCodes('0700000004');
+        foreach (['edg', 'seg', 'orange_gn', 'mtn_gn', 'cellcom_gn', 'canal_plus', 'startimes'] as $code) {
+            $this->assertContains($code, $guinee);
+        }
+        $this->assertNotContains('sodeci', $guinee);
+
+        // Sans cela, le garde Sanctum garde en cache le premier utilisateur.
+        $this->app['auth']->forgetGuards();
+
+        $ivoirien = $this->billerCodes('0700000001');
+        $this->assertContains('sodeci', $ivoirien);
+        $this->assertNotContains('edg', $ivoirien);
+    }
+
+    private function billerCodes(string $phone): array
+    {
+        $token = $this->postJson('/api/login', ['phone' => $phone, 'password' => 'password'])
+            ->assertOk()
+            ->json('token');
+
+        return collect($this->withToken($token)->getJson('/api/billers')->assertOk()->json('data'))
+            ->pluck('code')
+            ->all();
+    }
 }

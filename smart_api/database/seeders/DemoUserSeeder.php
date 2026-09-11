@@ -33,6 +33,13 @@ class DemoUserSeeder extends Seeder
                 'country_code' => 'CM',
                 'currency' => 'XAF',
             ],
+            [
+                'first_name' => 'Fatoumata',
+                'last_name' => 'Camara',
+                'phone' => '0700000004',
+                'country_code' => 'GN',
+                'currency' => 'GNF',
+            ],
         ];
 
         foreach ($users as $data) {

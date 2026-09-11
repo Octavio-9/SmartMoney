@@ -24,6 +24,7 @@ Conséquences :
 - `gen_autoload.php` construit désormais aussi le **classmap** (~1 557 classes). Il écrivait auparavant un `autoload_classmap.php` vide, ce qui rendait introuvables les classes déclarées hors PSR-4 — dompdf déclare `"classmap": ["lib/"]`, et `Dompdf\Cpdf` en fait partie : toute génération de reçu échouait donc en HTTP 500.
 - `storage/framework/{cache/data,sessions,views}` doit exister, sinon la compilation des vues Blade échoue avec « Please provide a valid cache path ». Laravel **ne recrée pas** ces dossiers.
 - `test_artisan.php` est un test de démarrage ponctuel écrit précisément pour cette configuration.
+- **PHPUnit ne tourne pas sur ce PHP 8.2** : `sebastian/environment` déclare des constantes typées (`public const int`), syntaxe PHP 8.3, et `php artisan test` meurt à l'analyse. Pour vérifier un comportement de l'API en local, écrire un script qui démarre Laravel, bascule `database.connections.sqlite.database` sur `:memory:`, lance `migrate` + `db:seed`, puis appelle les routes via le noyau HTTP. Les tests PHPUnit restent à jour pour un PHP 8.3+ (Railway est en 8.4).
 - Les scripts `composer setup` et `composer dev` de `composer.json` sont ceux de Laravel par défaut et ne sont pas utilisables ici.
 
 Flutter 3.44 et Node 22 sont accessibles normalement depuis le PATH.
@@ -37,7 +38,7 @@ php artisan serve --host=0.0.0.0 --port=8000          # API sur le port 8000
 php artisan migrate --seed                            # reconstruit SQLite + données de démo
 php artisan db:seed --class=CountrySeeder             # un seeder en particulier
 php artisan storage:link                              # public/storage -> storage/app/public
-php artisan test                                      # PHPUnit, sqlite en mémoire (phpunit.xml)
+php artisan test                                      # PHPUnit, sqlite en mémoire (phpunit.xml) — PHP ≥ 8.3 requis
 php artisan test --filter=test_demo_login_and_transfer  # un seul test
 vendor/bin/pint                                       # formatage PHP
 ```
@@ -98,6 +99,8 @@ La route `/` de `routes/web.php` renvoie un petit JSON d'état plutôt que la vu
 
 `DatabaseSeeder` enchaîne Country → Operator → ExchangeRate → DemoUser. 12 pays (XOF/XAF/USD/GNF) avec leurs opérateurs de mobile money.
 
-Comptes seedés, mot de passe `password` : `0700000001` (CI/XOF), `0700000002` (SN/XOF), `0700000003` (CM/XAF).
+Comptes seedés, mot de passe `password` : `0700000001` (CI/XOF), `0700000002` (SN/XOF), `0700000003` (CM/XAF), `0700000004` (GN/GNF).
+
+Les facturiers de l'onglet Paiement sont filtrés par le pays du compte connecté (`country_code` nul = disponible partout, c'est le cas de Canal+ et StarTimes). Un compte ivoirien ne verra donc jamais EDG : pour montrer les services guinéens (EDG, SEG, Orange, MTN, Cellcom Guinée), se connecter avec `0700000004`.
 
 L'inscription comme le seeding créditent un nouveau portefeuille de **1 000 000** dans la devise de l'utilisateur (codé en dur dans `AuthController::register` et `DemoUserSeeder`).

@@ -19,6 +19,7 @@ class BillerSeeder extends Seeder
         $abonne = "Numéro d'abonné";
         $contrat = 'Numéro de contrat';
         $decodeur = 'Numéro de décodeur';
+        $telephone = 'Numéro de téléphone';
 
         $billers = [
             // [code, nom, catégorie, pays, libellé de référence]
@@ -48,6 +49,9 @@ class BillerSeeder extends Seeder
 
             ['edg', 'EDG', 'electricite', 'GN', $compteur],
             ['seg', 'SEG', 'eau', 'GN', $abonne],
+            ['orange_gn', 'Orange Guinée', 'telephone', 'GN', $telephone],
+            ['mtn_gn', 'MTN Guinée', 'telephone', 'GN', $telephone],
+            ['cellcom_gn', 'Cellcom Guinée', 'telephone', 'GN', $telephone],
 
             ['edm', 'EDM-SA', 'electricite', 'ML', $compteur],
 
